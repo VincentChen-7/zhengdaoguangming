@@ -236,7 +236,7 @@
   .feat-sector{display:inline-block;align-self:flex-start;margin-top:7px;font-size:11px;background:var(--chip);color:var(--chipink);padding:2px 9px;border-radius:10px}
   .feat-note{font-size:12px;color:var(--sub);margin-top:7px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
   .feat-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
-  .idx-section-title{font-weight:800;font-size:14px;color:var(--brand);margin:18px 2px 8px;letter-spacing:.3px}
+  .idx-section-title{font-weight:800;font-size:14px;color:var(--brand);margin:18px 2px 8px;letter-spacing:.3px;grid-column:1/-1}
   .feat.held{border-color:#2e9e5b;border-left:3px solid #2e9e5b;background:linear-gradient(180deg,#f4fbf7,#eafaf0);box-shadow:0 1px 6px rgba(46,158,91,.15)}
   .feat.held .feat-note{color:#1f7a45}
   .hold-badge{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:#2e9e5b;border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:middle}
@@ -299,6 +299,20 @@
   .sec-group .feat-grid{padding:4px 14px 14px}
   @media(max-width:480px){ .sec-group .feat-grid{grid-template-columns:1fr} }
   @media(max-width:480px){ .sec-group-sum .sg-hint{display:none} }
+  /* 全部个股：单一折叠块（默认收起，一键展开即全部，按板块分组但不嵌套折叠） */
+  .all-fold{border:1px solid var(--line);border-radius:12px;background:#fff;margin:8px 0 16px;overflow:hidden}
+  .all-fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 16px;outline:none;font-weight:800;color:var(--brand);font-size:15px}
+  .all-fold>summary::-webkit-details-marker{display:none}
+  .all-fold>summary::before{content:"▸";color:var(--brand);font-weight:800;font-size:13px}
+  .all-fold[open]>summary::before{content:"▾"}
+  .all-fold .all-sum-t{white-space:nowrap}
+  .all-fold .all-sum-h{margin-left:auto;font-size:11px;color:#9aa;font-weight:600}
+  .all-fold .all-body{padding:4px 14px 14px}
+  .all-fold .all-sub{font-weight:800;font-size:14px;color:var(--brand);margin:16px 2px 8px;letter-spacing:.3px}
+  .all-fold .all-sub:first-child{margin-top:6px}
+  .all-fold .all-body .feat-grid{margin:0 0 4px}
+  @media(max-width:480px){ .all-fold .all-body .feat-grid{grid-template-columns:1fr} }
+  @media(max-width:480px){ .all-fold .all-sum-h{display:none} }
   .backbtn{background:none;border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;font:inherit;color:var(--ink);margin-bottom:14px}
   .backbtn:hover{background:#fff}
   .stock-head{display:flex;align-items:baseline;gap:10px 12px;flex-wrap:wrap;margin-bottom:4px}
@@ -638,6 +652,7 @@
       <div class="controls" style="margin-top:14px">
         <input type="text" id="stock-search" placeholder="搜索个股名称 / 代码 / 别名 / 板块…">
         <label class="incomplete-toggle"><input type="checkbox" id="incomplete-only"> 仅看待完善</label>
+        <button class="btn" id="expand-all-btn" title="一键展开 / 收起全部个股（除重点跟踪外）">🔽 一键展开全部个股</button>
         <span class="count-pill" id="stock-count">共 0 只</span>
       </div>
       <div class="note-strip" id="stocks-note"></div>
@@ -1672,12 +1687,16 @@ function renderStocksIndex(){
   const hSect=document.getElementById("sect-fold");
   const hFeat=document.getElementById("stocks-feat-h");
   feat.innerHTML=""; sect.innerHTML="";
+  // 清除上一次渲染遗留的「全部个股 / 历史提及」折叠块（它们是 feat 的兄弟节点，innerHTML="" 清不到）
+  const _sec=document.getElementById("sec-stocks");
+  _sec.querySelectorAll(".all-fold,.stale-fold").forEach(n=>n.remove());
 
   // 搜索模式：按关键词过滤个股
   if(kw){
     srBox.style.display="block";
     if(hSect) hSect.style.display="none";
     if(hFeat) hFeat.style.display="none";
+    const _ea0=document.getElementById("expand-all-btn"); if(_ea0) _ea0.style.display="none";
     srBox.innerHTML="";
     const nkw=norm(kw);
     const matched=D.index.stocks.filter(s=>{
@@ -1715,6 +1734,7 @@ function renderStocksIndex(){
   srBox.style.display="none";
   if(hSect) hSect.style.display="";
   if(hFeat) hFeat.style.display="";
+  const _ea1=document.getElementById("expand-all-btn"); if(_ea1) _ea1.style.display="";
   document.getElementById("stock-count").textContent="共 "+D.index.stocks.length+" 只";
   // 1) 我的持仓（用户明确持有的票），钉在最前
   const held=D.index.stocks.filter(s=>{ const sm=stockSummary(s.name,s.code); return sm && sm.holding; }).filter(passIncomplete);
@@ -1733,7 +1753,8 @@ function renderStocksIndex(){
       return b.count-a.count;
     }).forEach(s=> feat.appendChild(featCard(s,{cls:"core"})));
   }
-  // 3) 全部个股：按板块分组成可折叠手风琴（默认收起），并去掉已提升到顶部"持仓/核心"的票，避免重复
+  // 3) 全部个股：默认折叠成「一个块」，重点跟踪(持仓/核心)已展开在上面；一键展开即全部
+  let allFold=null;
   const ranked=D.index.stocks.slice().sort((a,b)=>{
     const ca=stockSummary(a.name)?1:0, cb=stockSummary(b.name)?1:0;
     if(ca!==cb) return cb-ca;
@@ -1754,20 +1775,24 @@ function renderStocksIndex(){
   const groupMap={};
   for(const s of rest){ const sec=s.sector||"其他"; (groupMap[sec]=groupMap[sec]||[]).push(s); }
   const secOrder=boardOrder.filter(sec=>groupMap[sec]&&groupMap[sec].length).concat(Object.keys(groupMap).filter(sec=>boardOrder.indexOf(sec)<0));
-  if(rest.length) feat.appendChild(el("div",{class:"idx-section-title",text:"全部个股（按板块折叠 · 共 "+rest.length+" 只，点板块展开）"}));
-  secOrder.forEach(sn=>{
-    const arr=groupMap[sn].slice().sort((a,b)=>b.count-a.count);
-    const det=el("details",{class:"sec-group"});
-    const sum=el("summary",{class:"sec-group-sum"});
-    sum.appendChild(el("span",{class:"sg-name",text:sn}));
-    sum.appendChild(el("span",{class:"sg-count",text:arr.length+" 只"}));
-    sum.appendChild(el("span",{class:"sg-hint",text:"点击展开"}));
-    det.appendChild(sum);
-    const grid=el("div",{class:"feat-grid"});
-    arr.forEach(s=> grid.appendChild(featCard(s,{})));
-    det.appendChild(grid);
-    feat.appendChild(det);
-  });
+  // 单个折叠块：默认收起，点击或「一键展开全部」即显示全部（按板块分组但不嵌套折叠，一展开即全部）
+  if(rest.length){
+    allFold=el("details",{class:"all-fold",id:"all-fold"});
+    const allSum=el("summary",{class:"all-sum"});
+    allSum.appendChild(el("span",{class:"all-sum-t",text:"📂 全部个股（其他 "+rest.length+" 只）"}));
+    allSum.appendChild(el("span",{class:"all-sum-h",text:"点击展开 · 或按上方「一键展开全部个股」"}));
+    allFold.appendChild(allSum);
+    const allBody=el("div",{class:"all-body"});
+    secOrder.forEach(sn=>{
+      const arr=groupMap[sn].slice().sort((a,b)=>b.count-a.count);
+      allBody.appendChild(el("div",{class:"all-sub",text:sn+"（"+arr.length+" 只）"}));
+      const grid=el("div",{class:"feat-grid"});
+      arr.forEach(s=> grid.appendChild(featCard(s,{})));
+      allBody.appendChild(grid);
+    });
+    allFold.appendChild(allBody);
+    feat.after(allFold);
+  }
   // 4) 历史票折叠区（时效已过：多为玺哥回顾早年做过的票，不代表当下可做）
   if(stale.length){
     const det=el("details",{class:"stale-fold"});
@@ -1778,7 +1803,7 @@ function renderStocksIndex(){
     const grid=el("div",{class:"feat-grid"});
     stale.forEach(s=> grid.appendChild(featCard(s,{cls:"stale"})));
     det.appendChild(grid);
-    feat.appendChild(det);
+    (allFold?allFold:feat).after(det);
   }
   // 板块
   const secNames=Object.keys(D.index.sectors);
@@ -1793,6 +1818,14 @@ function renderStocksIndex(){
     sect.appendChild(s);
   });
   const _sf=document.getElementById("sect-fold-n"); if(_sf) _sf.textContent=secNames.length;
+  updateExpandAllBtn();
+}
+function updateExpandAllBtn(){
+  const ea=document.getElementById("expand-all-btn"); const af=document.getElementById("all-fold");
+  if(!ea) return;
+  if(!af){ ea.style.display="none"; return; }
+  ea.textContent = af.open ? "🔼 收起全部个股" : "🔽 一键展开全部个股";
+  ea.classList.toggle("on", af.open);
 }
 function openSector(sn){
   const arr=D.index.sectors[sn].slice().sort((a,b)=>b.count-a.count);
@@ -2267,6 +2300,14 @@ document.getElementById("ths-newonly").addEventListener("change",renderThs);
 document.getElementById("ths-sort").addEventListener("click",function(){ thsSortDesc=!thsSortDesc; this.textContent=thsSortDesc?"新 → 旧":"旧 → 新"; renderThs(); });
 document.getElementById("stock-search").addEventListener("input",renderStocksIndex);
 document.getElementById("incomplete-only").addEventListener("change",renderStocksIndex);
+// 个股：一键展开 / 收起全部（除重点跟踪外）
+const _eaBtn=document.getElementById("expand-all-btn");
+if(_eaBtn) _eaBtn.addEventListener("click",function(){
+  const af=document.getElementById("all-fold"); if(!af) return;
+  af.open=!af.open;
+  updateExpandAllBtn();
+  if(af.open){ setTimeout(function(){ try{ af.scrollIntoView({behavior:"smooth",block:"start"}); }catch(e){} },60); }
+});
 document.getElementById("bt-tabs").querySelectorAll(".tab").forEach(t=> t.addEventListener("click",function(){
   document.querySelectorAll("#bt-tabs .tab").forEach(x=>x.classList.remove("active"));
   t.classList.add("active"); btTab=t.dataset.bt; renderBacktest();
