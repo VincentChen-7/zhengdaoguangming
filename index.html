@@ -228,11 +228,11 @@
   .feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 22px}
   @media(min-width:480px){.feat-grid{grid-template-columns:repeat(3,1fr);gap:12px}}
   @media(min-width:768px){.feat-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
-  .feat{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:0}
+  .feat{border:1px solid var(--line);border-radius:12px;padding:12px 12px;background:#fff;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:0}
   .feat:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(10,108,181,.14);border-color:var(--accent)}
-  .feat .nm{font-weight:800;font-size:16px;line-height:1.25}
-  .feat .cd{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .feat-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .feat .nm{font-weight:800;font-size:16px;line-height:1.25;flex:1 1 100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .feat .cd{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap;flex:0 0 100%;text-align:right;margin-top:2px}
+  .feat-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:flex-start;gap:8px}
   .feat-sector{display:inline-block;align-self:flex-start;margin-top:7px;font-size:11px;background:var(--chip);color:var(--chipink);padding:2px 9px;border-radius:10px}
   .feat-note{font-size:12px;color:var(--sub);margin-top:7px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
   .feat-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
@@ -297,6 +297,7 @@
   .sec-group-sum .sg-count{font-size:12px;color:var(--chipink);background:var(--chip);padding:2px 9px;border-radius:10px}
   .sec-group-sum .sg-hint{margin-left:auto;font-size:11px;color:#9aa}
   .sec-group .feat-grid{padding:4px 14px 14px}
+  @media(max-width:480px){ .sec-group .feat-grid{grid-template-columns:1fr} }
   @media(max-width:480px){ .sec-group-sum .sg-hint{display:none} }
   .backbtn{background:none;border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;font:inherit;color:var(--ink);margin-bottom:14px}
   .backbtn:hover{background:#fff}
