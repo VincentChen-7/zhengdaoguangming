@@ -557,23 +557,6 @@
 <div class="layout" id="layout">
   <aside class="sidebar">
     <div class="brand"><div class="t1">股票研究台</div></div>
-    <div class="gsearch-wrap">
-      <div class="gsearch-box">
-        <svg class="gsearch-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" id="gsearch-input" placeholder="搜索关键词（回车定位正文）…" autocomplete="off">
-        <button class="gsearch-go" id="gsearch-go" title="搜索并正文标黄定位" aria-label="搜索">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
-        <kbd class="gsearch-kbd" id="gsearch-kbd">Ctrl K</kbd>
-      </div>
-      <div class="gsearch-nav" id="gsearch-nav">
-        <span class="gsearch-count" id="gsearch-count">未搜索</span>
-        <button id="kw-prev" title="上一个匹配（Shift+Enter）">↑</button>
-        <button id="kw-next" title="下一个匹配（Enter）">↓</button>
-        <button class="kw-x" id="kw-close" title="清除高亮">✕</button>
-      </div>
-      <div class="gsearch-results" id="gsearch-results" style="display:none"></div>
-    </div>
     <button class="navbtn active" data-sec="ths">同花顺<span class="en" id="nav-ths-en">全量动态</span></button>
     <button class="navbtn" data-sec="haiou">海鸥<span class="en" id="nav-haiou-en">群聊原话</span></button>
     <button class="navbtn" data-sec="notes">笔记<span class="en">语录收藏</span></button>
@@ -621,7 +604,12 @@
     </section>
 
     <section class="sec" id="sec-notes">
-      <div class="sec-head"><h1>笔记 · 语录收藏</h1><p>用户收藏的语录 PDF 全文（按原页拆分，原汁原味保留）。</p></div>
+      <div class="sec-head"><h1>笔记 · 语录收藏</h1><p>用户收藏的语录 PDF 全文（按原页拆分，原汁原味保留）。搜索关键词后仅显示命中的页，并在正文命中处标黄，右侧悬浮 ↑↓ 可在命中之间跳转。</p></div>
+      <div class="controls">
+        <input type="text" id="notes-search" placeholder="搜索笔记正文关键词…">
+        <button class="gsearch-go" id="notes-go" title="搜索并标黄定位">🔍</button>
+        <span class="count-pill" id="notes-count"></span>
+      </div>
       <div id="notes-list"></div>
     </section>
 
@@ -1042,16 +1030,28 @@ function renderThs(){
 }
 
 // ---------- 笔记 ----------
+let notesKw={matches:[],idx:-1};
 function renderNotes(){
   const box=document.getElementById("notes-list");
   box.innerHTML="";
+  const kw=document.getElementById("notes-search")?document.getElementById("notes-search").value.trim():"";
+  const dispKw=kw;
+  const nkl=norm(kw);
+  const total=(D.notes?D.notes.length:0);
+  let shown=0;
   D.notes.forEach((pg,i)=>{
+    if(nkl && norm(pg).indexOf(nkl)<0) return; // 关键词过滤：仅显示命中页
+    shown++;
     const card=el("div",{class:"card page-card"});
     card.appendChild(el("div",{class:"pgno",text:"— 第 "+(i+1)+" 页 —"}));
     // 笔记原文无可靠日期锚点（旧版写死 2026-01-01 会算出错误绝对时间）→ 原样呈现
-    card.appendChild(el("div",{class:"body",text:pg}));
+    card.appendChild(el("div",{class:"body",html: nkl ? hl(pg,dispKw) : esc(pg)}));
     box.appendChild(card);
   });
+  const cnt=document.getElementById("notes-count");
+  if(cnt) cnt.textContent = kw ? ("匹配 "+shown+"/"+total+" 页") : (total+" 页");
+  // 标黄 + 右侧悬浮上下导航（仅本板块作用域，与全局 mark.kw 隔离）
+  showSectionKw(notesKw, dispKw, box);
 }
 
 // ---------- 分析 ----------
@@ -2127,42 +2127,9 @@ function updateKwBar(){
   else cnt.textContent="未找到「"+currentKw+"」";
   updateUniversalFloat();
 }
-// keyboard shortcut
+// keyboard shortcut：Escape 清除当前板块搜索高亮
 document.addEventListener("keydown",function(e){
-  // Ctrl+K / Cmd+K → focus global search
-  if((e.ctrlKey||e.metaKey) && e.key==="k"){ e.preventDefault(); document.getElementById("gsearch-input").focus(); }
-  // Slash when not typing in an input → focus global search
-  if(e.key==="/" && !/INPUT|TEXTAREA|SELECT/.test((e.target.tagName||""))){ e.preventDefault(); document.getElementById("gsearch-input").focus(); }
-  // Escape → 关闭下拉并清除正文高亮
-  if(e.key==="Escape"){ clearGSearch(); }
-});
-let _gSearchTimer=null;
-document.getElementById("gsearch-input").addEventListener("input",function(){
-  clearTimeout(_gSearchTimer);
-  const v=this.value;
-  _gSearchTimer=setTimeout(function(){ runGlobalSearch(v); },200);
-});
-// 点击放大镜按钮：立即搜索 + 正文标黄定位
-document.getElementById("gsearch-go").addEventListener("click",function(){
-  runGlobalSearch(document.getElementById("gsearch-input").value);
-  document.getElementById("gsearch-input").focus();
-});
-// 上下翻找关键词 + 清除
-document.getElementById("kw-next").addEventListener("click",function(){ gotoKw(1); });
-document.getElementById("kw-prev").addEventListener("click",function(){ gotoKw(-1); });
-document.getElementById("kw-close").addEventListener("click",function(){ clearGSearch(); });
-// 输入框内 Enter=下一个匹配（已在搜则继续翻），Shift+Enter=上一个；否则重新搜索
-document.getElementById("gsearch-input").addEventListener("keydown",function(e){
-  if(e.key==="Enter"){
-    e.preventDefault();
-    const v=this.value.trim();
-    if(currentKw && currentKw===v && kwMatches.length){ gotoKw(e.shiftKey?-1:1); }
-    else { runGlobalSearch(v); }
-  }
-});
-document.addEventListener("click",function(e){
-  const wrap=document.querySelector(".gsearch-wrap");
-  if(wrap && !wrap.contains(e.target)){ document.getElementById("gsearch-results").style.display="none"; }
+  if(e.key==="Escape"){ clearKwHighlights(); activeKwState=null; activeKwDispKw=""; updateFloatNav(); }
 });
 
 // ---------- wiring ----------
@@ -2182,7 +2149,7 @@ function setSection(sec){
   // 切换板块后，若仍在搜索状态则重新标黄定位
   if(currentKw){ setTimeout(function(){ highlightInContent(currentKw, true); }, 160); }
   // 板块内置搜索悬浮导航：只在带内置搜索的板块显示，切走则隐藏（避免残留旧命中）
-  if(sec!=="haiou" && sec!=="ths"){ activeKwDispKw=""; activeKwState=null; updateFloatNav(); }
+  if(sec!=="haiou" && sec!=="ths" && sec!=="notes"){ activeKwDispKw=""; activeKwState=null; updateFloatNav(); }
 }
 document.querySelectorAll(".navbtn").forEach(b=> b.addEventListener("click",()=>setSection(b.dataset.sec)));
 document.getElementById("onlyxige").addEventListener("change",renderHaiou);
@@ -2265,15 +2232,6 @@ function navFloatKw(dir){
   if(activeKwState && activeKwDispKw && activeKwState.matches.length){ goFloatKw(dir); return; }
   if(currentKw && kwMatches.length){ gotoKw(dir); return; }
 }
-function jumpToGSearchSection(rec, kw){
-  if(!rec) return;
-  const cat=rec.cat, item=rec.item;
-  if(cat==="个股"){ setSection("stocks"); if(item&&item.code) setTimeout(function(){ try{ openStock(item.code); }catch(e){} },140); }
-  else if(cat==="海鸥群聊"){ setSection("haiou"); }
-  else if(cat==="同花顺动态"){ setSection("ths"); setTimeout(function(){ const si=document.getElementById("ths-search"); if(si){ si.value=kw; renderThs(); } },140); }
-  else if(cat==="行业周期"){ setSection("cycle"); }
-  else if(cat==="笔记"){ setSection("notes"); }
-}
 function showSectionKw(state, dispKw, box){
   activeKwState=state; activeKwDispKw=dispKw||"";
   state.matches=collectSectionKw(box);
@@ -2296,6 +2254,10 @@ document.getElementById("haiou-search").addEventListener("keydown",function(e){ 
 // 同花顺
 document.getElementById("ths-go").addEventListener("click",function(){ renderThs(); document.getElementById("ths-search").focus(); });
 document.getElementById("ths-search").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); goFloatKw(e.shiftKey?-1:1); } });
+// 笔记
+document.getElementById("notes-go").addEventListener("click",function(){ renderNotes(); document.getElementById("notes-search").focus(); });
+document.getElementById("notes-search").addEventListener("input",renderNotes);
+document.getElementById("notes-search").addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); goFloatKw(e.shiftKey?-1:1); } });
 // 右侧悬浮导航箭头（滚动时始终可见）
 document.getElementById("kw-float-up").addEventListener("click",function(){ navFloatKw(-1); });
 document.getElementById("kw-float-down").addEventListener("click",function(){ navFloatKw(1); });
@@ -2322,9 +2284,6 @@ updateBtCounts();
 
 // populate tag filter
 (function(){
-  // OS detection for shortcut hint
-  if(/Mac|iPhone|iPad/.test(navigator.platform||"")) document.getElementById("gsearch-kbd").textContent="⌘K";
-
   const sel=document.getElementById("ths-tag");
   const counts={};
   D.timeline.forEach(p=>(p.tags||[]).forEach(t=>counts[t]=(counts[t]||0)+1));
