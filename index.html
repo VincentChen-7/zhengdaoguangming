@@ -92,6 +92,41 @@
   .kw-float button:hover{background:#1d3a55;border-color:var(--accent)}
   .kw-float button:active{transform:scale(.93)}
   .kw-float .kfc{font-size:11px;color:#7fd0ff;text-align:center;font-variant-numeric:tabular-nums;padding:1px 0;user-select:none}
+  /* ===== 全局搜索浮层 ===== */
+  .gs-btn{width:40px;height:40px;border:none;background:transparent;color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:8px;margin-left:auto;flex-shrink:0}
+  .gs-btn:active{background:rgba(255,255,255,.14)}
+  .gsheet{position:fixed;inset:0;z-index:300;display:none;flex-direction:column;background:#f4f6fa}
+  .gsheet.open{display:flex}
+  .gsheet-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(120deg,#051c2c 0%,#0e3556 60%,#0a6cb5 140%);color:#fff;flex-shrink:0;padding-top:max(10px,env(safe-area-inset-top))}
+  .gsheet-head .gs-back{width:38px;height:38px;border:none;background:rgba(255,255,255,.12);color:#fff;font-size:18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .gsheet-head .gs-back:active{background:rgba(255,255,255,.24)}
+  .gsheet-input{flex:1;min-width:0;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:10px;padding:9px 12px;color:#fff;font:inherit;font-size:16px;outline:none}
+  .gsheet-input::placeholder{color:rgba(255,255,255,.55)}
+  .gsheet-total{font-size:12px;color:#bcd6ee;white-space:nowrap;flex-shrink:0}
+  .gsheet-body{flex:1;overflow-y:auto;padding:10px 14px 60px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .gs-group{margin-bottom:6px}
+  .gs-group-hd{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;color:#33475e;padding:9px 2px 7px;position:sticky;top:0;background:#f4f6fa;z-index:2;border-bottom:1px solid #e2e8f0}
+  .gs-group-hd .gsg-count{font-size:11px;font-weight:700;color:#fff;background:#5a7ca8;border-radius:9px;padding:1px 8px}
+  .gs-sec-sub{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:#0a6cb5;margin:10px 2px 4px}
+  .gs-sec-sub .gss-count{color:#8a97a8;font-weight:600;font-size:11.5px}
+  .gs-row{display:block;width:100%;text-align:left;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px;margin:5px 0;cursor:pointer;font:inherit;color:inherit;transition:border-color .12s,box-shadow .12s}
+  .gs-row:hover,.gs-row.active{border-color:var(--accent);box-shadow:0 2px 10px rgba(10,108,181,.14)}
+  .gs-row .gsr-t{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#1c2b3a}
+  .gs-row .gsr-code{font-size:11px;color:#7c8a9a;font-family:monospace;font-weight:400}
+  .gs-row .gsr-badge{font-size:10px;font-weight:700;color:#fff;background:#e08c00;border-radius:8px;padding:0 6px;line-height:16px}
+  .gs-row .gsr-badge.xg{background:#c0392b}
+  .gs-row .gsr-snip{font-size:12.5px;color:#5c6b7d;line-height:1.55;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+  .gs-row .gsr-meta{font-size:11px;color:#93a1b1;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+  .gs-row mark,.gs-sec-sub mark{background:#ffe34d;color:#1a1a1a;border-radius:2px;padding:0 1px;font-weight:700}
+  .gs-empty{padding:44px 20px;text-align:center;color:#8a97a8;font-size:14px;line-height:2}
+  .gs-hint{padding:26px 18px;color:#7c8a9a;font-size:13px;line-height:2.1}
+  .gs-hint b{color:#0a6cb5}
+  .gs-hint .gh-t{font-size:15px;font-weight:800;color:#33475e;margin-bottom:6px}
+  @media(max-width:480px){
+    .gsheet-body{padding:8px 8px 60px}
+    .gs-row{padding:8px 10px}
+    .gs-row .gsr-t{font-size:13.5px}
+  }
   @media(min-width:768px){
     .gsearch-results{left:230px;width:420px;top:auto;box-shadow:0 8px 32px rgba(0,0,0,.5)}
   }
@@ -564,9 +599,18 @@
 </head>
 <body>
 <div id="loading"><div class="spin"></div><div style="color:#6b7785">正在加载研究台数据…</div></div>
+<div class="gsheet" id="gsheet" role="dialog" aria-label="全局搜索">
+  <div class="gsheet-head">
+    <button class="gs-back" id="gs-back" aria-label="关闭搜索">←</button>
+    <input class="gsheet-input" id="gs-input" type="text" placeholder="搜个股 / 板块 / 玺哥原话 / 笔记 / 方法论…" autocomplete="off">
+    <span class="gsheet-total" id="gs-total"></span>
+  </div>
+  <div class="gsheet-body" id="gs-body"></div>
+</div>
 <div class="topbar">
   <button class="menu-btn" id="menu-btn" aria-label="菜单">☰</button>
   <div class="top-title">股票研究台</div>
+  <button class="gs-btn" id="gs-btn" aria-label="全局搜索" title="全局搜索（Ctrl+K）">🔍</button>
 </div>
 <div class="layout" id="layout">
   <aside class="sidebar">
@@ -2367,6 +2411,259 @@ function fillHero(){
     hero.appendChild(d);
   });
 }
+// ================= 全局搜索（跨板块聚合：个股按板块归类 + 各内容类型分组） =================
+(function(){
+  var gsIdx=null, gsTimer=null, gsRows=[], gsActive=-1, gsLastKw="";
+
+  function buildGsIndex(){
+    if(gsIdx) return gsIdx;
+    var idx={stocks:[],haiou:[],ths:[],notes:[],fw:[],cycle:"",bt:"",strategy:""};
+    // 个股：name/code/sector/别名 + 全字段总结文本（含 xigeQuotes 原话）
+    (D.index.stocks||[]).forEach(function(s){
+      var sm=stockSummary(s.name,s.code);
+      var alias="";
+      if(typeof STOCK_ALIAS!=="undefined" && STOCK_ALIAS[s.name]) alias=STOCK_ALIAS[s.name].join(" ");
+      idx.stocks.push({
+        name:s.name||"", code:s.code||"", sector:s.sector||"", count:s.count||0, sm:sm,
+        ntext:norm((s.name||"")+" "+(s.code||"")+" "+(s.sector||"")+" "+alias+" "+(sm?smSearchText(sm):""))
+      });
+    });
+    // 海鸥群聊（含群友，玺哥消息打徽章）
+    (D.haiou||[]).forEach(function(m){
+      var isX=(m.role==="群主")||/^(玺|正)/.test(m.sender||"");
+      idx.haiou.push({sender:m.sender||"",isX:isX,dt:m.dt||m.disp||m.time||"",ts:m.ts||0,
+        ntext:norm((m.content||"")+" "+(m.quote||"")+" "+(m.photoText||"")+" "+(m.cap||""))});
+    });
+    // 同花顺时间线
+    (D.timeline||[]).forEach(function(p){
+      idx.ths.push({time:p.time||"",ts:p.ts||0,tags:(p.tags||[]).join(" "),
+        ntext:norm((p.content||"")+" "+(p.tags||[]).join(" "))});
+    });
+    // 笔记页
+    (D.notes||[]).forEach(function(t,i){ idx.notes.push({page:i+1,ntext:norm(t||"")}); });
+    // 方法论节
+    var f=D.framework||{};
+    (f.sections||[]).forEach(function(s,i){
+      idx.fw.push({idx:i,title:s.title||("第"+(i+1)+"章"),
+        ntext:norm((s.title||"")+" "+(s.points||[]).join(" ")+" "+(s.cases||[]).join(" "))});
+    });
+    try{ idx.cycle=norm(JSON.stringify(D.cycle||{})); }catch(e){}
+    try{ idx.bt=norm(JSON.stringify(D.backtest||{})); }catch(e){}
+    try{ idx.strategy=norm(JSON.stringify(D.strategy||{})); }catch(e){}
+    gsIdx=idx;
+    return idx;
+  }
+
+  function gsSnippet(text,kw){
+    text=String(text||"").replace(/\s+/g," ").trim();
+    if(!text) return "";
+    var low=text.toLowerCase(), kl=kw.toLowerCase();
+    var i=low.indexOf(kl);
+    if(i<0){ var nk=norm(kw), nt=norm(text); var j=nt.indexOf(nk); if(j>=0){ i=Math.floor(j*text.length/Math.max(nt.length,1)); } }
+    if(i<0) i=0;
+    var start=Math.max(0,i-22), end=Math.min(text.length,i+66);
+    return (start>0?"…":"")+text.slice(start,end)+(end<text.length?"…":"");
+  }
+
+  function gsSearch(kw){
+    var idx=buildGsIndex();
+    var k=norm(kw);
+    if(!k) return null;
+    var res={stocks:[],haiou:[],ths:[],notes:[],fw:[],cycle:[],bt:[],strategy:[]};
+    idx.stocks.forEach(function(s){ if(s.ntext.indexOf(k)>=0) res.stocks.push(s); });
+    res.stocks.sort(function(a,b){ return (b.count||0)-(a.count||0); });
+    idx.haiou.forEach(function(m){ if(m.ntext.indexOf(k)>=0) res.haiou.push(m); });
+    res.haiou.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    idx.ths.forEach(function(p){ if(p.ntext.indexOf(k)>=0) res.ths.push(p); });
+    res.ths.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    idx.notes.forEach(function(n){ if(n.ntext.indexOf(k)>=0) res.notes.push(n); });
+    idx.fw.forEach(function(s){ if(s.ntext.indexOf(k)>=0) res.fw.push(s); });
+    if(idx.cycle.indexOf(k)>=0) res.cycle.push({});
+    if(idx.bt.indexOf(k)>=0) res.bt.push({});
+    if(idx.strategy.indexOf(k)>=0) res.strategy.push({});
+    return res;
+  }
+
+  function gsRow(titleHtml, metaHtml, snipHtml, onClick){
+    var r=el("button",{class:"gs-row",type:"button"});
+    var t=el("div",{class:"gsr-t"}); t.innerHTML=titleHtml;
+    r.appendChild(t);
+    if(snipHtml) r.appendChild(el("div",{class:"gsr-snip",html:snipHtml}));
+    if(metaHtml) r.appendChild(el("div",{class:"gsr-meta",html:metaHtml}));
+    r.addEventListener("click",onClick);
+    return r;
+  }
+
+  function gsRender(res,kw){
+    var body=document.getElementById("gs-body");
+    var total=document.getElementById("gs-total");
+    body.innerHTML=""; gsRows=[]; gsActive=-1;
+    var n=0;
+    function group(icon,label,count,build){
+      n+=count;
+      var g=el("div",{class:"gs-group"});
+      var hd=el("div",{class:"gs-group-hd"});
+      hd.appendChild(el("span",{text:icon+" "+label}));
+      hd.appendChild(el("span",{class:"gsg-count",text:count+" 条"}));
+      g.appendChild(hd);
+      build(g);
+      body.appendChild(g);
+    }
+    if(res.stocks.length){
+      group("📌","个股（按板块归类）",res.stocks.length,function(g){
+        // 板块顺序与「汇总」板块一致；未登记板块归"其他"
+        var secOrder=Object.keys(D.index.sectors||{});
+        var bySec={};
+        res.stocks.forEach(function(s){ var k=s.sector||"其他"; (bySec[k]=bySec[k]||[]).push(s); });
+        var keys=Object.keys(bySec).sort(function(a,b){
+          var ia=secOrder.indexOf(a), ib=secOrder.indexOf(b);
+          if(ia<0&&ib<0) return a.localeCompare(b);
+          if(ia<0) return 1; if(ib<0) return -1; return ia-ib;
+        });
+        keys.forEach(function(sec){
+          var arr=bySec[sec];
+          var sub=el("div",{class:"gs-sec-sub"});
+          sub.innerHTML=hl(sec,kw)+' <span class="gss-count">'+arr.length+" 只</span>";
+          g.appendChild(sub);
+          arr.forEach(function(s){
+            var sm=s.sm;
+            var snip="";
+            if(sm){
+              var xq=sm.xigeQuotes||[];
+              for(var i=0;i<xq.length;i++){
+                var qt=typeof xq[i]==="string"?xq[i]:((xq[i]&&xq[i].text)||"");
+                if(norm(qt).indexOf(norm(kw))>=0){ snip=qt; break; }
+              }
+              if(!snip && sm.tagline && norm(sm.tagline).indexOf(norm(kw))>=0) snip=sm.tagline;
+            }
+            if(!snip) snip="板块："+(s.sector||"—")+" · 提及 "+s.count+" 次";
+            var title=hl(s.name,kw)+(s.code?' <span class="gsr-code">'+esc(s.code)+"</span>":"");
+            if(sm&&sm.core) title+=' <span class="gsr-badge xg">核心</span>';
+            var meta=[];
+            if(sm&&sm.support) meta.push("支撑 "+esc(sm.support));
+            if(sm&&sm.pressure) meta.push("压力/目标 "+esc(sm.pressure));
+            g.appendChild(gsRow(title, meta.join(" · ")||null, hl(gsSnippet(snip,kw),kw), function(){
+              closeGsSheet(); openStock(s.code||s.name);
+            }));
+          });
+        });
+      });
+    }
+    if(res.haiou.length){
+      group("💬","海鸥群聊原话",res.haiou.length,function(g){
+        res.haiou.slice(0,60).forEach(function(m){
+          var title=esc(m.sender||"匿名")+(m.isX?' <span class="gsr-badge xg">群主</span>':"");
+          g.appendChild(gsRow(title, esc(m.dt), null, function(){
+            closeGsSheet(); document.getElementById("haiou-search").value=kw; currentKw="";
+            setSection("haiou");
+          }));
+        });
+        if(res.haiou.length>60) g.appendChild(el("div",{class:"gs-hint",style:"padding:6px 4px",text:"仅显示最新 60 条，跳到「海鸥」板块后可看全部 "+res.haiou.length+" 条命中"}));
+      });
+    }
+    if(res.ths.length){
+      group("📈","同花顺动态",res.ths.length,function(g){
+        res.ths.slice(0,40).forEach(function(p){
+          var meta=esc(p.time)+(p.tags?" · "+esc(p.tags):"");
+          g.appendChild(gsRow("同花顺动态", meta, null, function(){
+            closeGsSheet(); document.getElementById("ths-search").value=kw; currentKw="";
+            setSection("ths");
+          }));
+        });
+        if(res.ths.length>40) g.appendChild(el("div",{class:"gs-hint",style:"padding:6px 4px",text:"仅显示最新 40 条，跳到「同花顺」板块后可看全部 "+res.ths.length+" 条命中"}));
+      });
+    }
+    if(res.notes.length){
+      group("📒","笔记",res.notes.length,function(g){
+        res.notes.slice(0,30).forEach(function(pg){
+          g.appendChild(gsRow("第 "+pg.page+" 页", null, null, function(){
+            closeGsSheet(); document.getElementById("notes-search").value=kw; currentKw="";
+            setSection("notes");
+          }));
+        });
+        if(res.notes.length>30) g.appendChild(el("div",{class:"gs-hint",style:"padding:6px 4px",text:"仅显示前 30 页，跳到「笔记」板块后可看全部 "+res.notes.length+" 页命中"}));
+      });
+    }
+    if(res.fw.length){
+      group("📖","方法论体系",res.fw.length,function(g){
+        res.fw.forEach(function(s){
+          g.appendChild(gsRow(hl(s.title,kw), "分析板块 · 点击定位并标黄", null, function(){
+            closeGsSheet(); currentKw=kw;
+            setSection("analysis");
+            setTimeout(function(){
+              var t=document.getElementById("an-ch-"+s.idx);
+              if(t) t.scrollIntoView({behavior:"smooth",block:"start"});
+            },320);
+          }));
+        });
+      });
+    }
+    if(res.cycle.length) group("🔄","行业周期",1,function(g){
+      g.appendChild(gsRow("行业周期 · 轮动/定律/阶段", "点击跳转并标黄", null, function(){
+        closeGsSheet(); currentKw=kw; setSection("cycle");
+      }));
+    });
+    if(res.bt.length) group("🎯","回测",1,function(g){
+      g.appendChild(gsRow("回测案例（成功/进行中/失败）", "点击跳转并标黄", null, function(){
+        closeGsSheet(); currentKw=kw; setSection("backtest");
+      }));
+    });
+    if(res.strategy.length) group("🧭","策略",1,function(g){
+      g.appendChild(gsRow("策略 · 持仓与操作建议", "点击跳转并标黄", null, function(){
+        closeGsSheet(); currentKw=kw; setSection("strategy");
+      }));
+    });
+    if(!n){
+      body.appendChild(el("div",{class:"gs-empty",html:"未找到「<b>"+esc(kw)+"</b>」相关结果<br>换个关键词试试，如个股名、代码、板块名或话题（摘帽/预重整/回踩）"}));
+    }
+    total.textContent=n?("共 "+n+" 条"):"";
+    gsRows=Array.prototype.slice.call(body.querySelectorAll(".gs-row"));
+  }
+
+  function openGsSheet(){
+    document.getElementById("gsheet").classList.add("open");
+    var inp=document.getElementById("gs-input");
+    inp.value=""; gsLastKw="";
+    document.getElementById("gs-body").innerHTML='<div class="gs-hint"><div class="gh-t">🔍 全局搜索 · 一站搜遍研究台</div>搜 <b>个股名 / 代码</b>（如 华塑、600935）→ 直达个股卡，结果按板块归类<br>搜 <b>板块词</b>（如 煤炭、医药、养殖）→ 该板块个股自动聚合 + 相关原话/方法论<br>搜 <b>话题</b>（如 摘帽、预重整、回踩、震仓）→ 跨海鸥/同花顺/笔记/方法论全库命中<br>点击任一条目 → 跳转到对应位置并自动标黄定位</div>';
+    document.getElementById("gs-total").textContent="";
+    setTimeout(function(){ try{ inp.focus(); }catch(e){} },60);
+  }
+  function closeGsSheet(){ document.getElementById("gsheet").classList.remove("open"); }
+
+  document.getElementById("gs-btn").addEventListener("click",openGsSheet);
+  document.getElementById("gs-back").addEventListener("click",closeGsSheet);
+  var gsInp=document.getElementById("gs-input");
+  gsInp.addEventListener("input",function(){
+    var v=gsInp.value;
+    clearTimeout(gsTimer);
+    gsTimer=setTimeout(function(){
+      var kw=v.trim();
+      if(kw===gsLastKw) return;
+      gsLastKw=kw;
+      if(kw.length<1){ openGsSheet(); return; }
+      var res=gsSearch(kw);
+      if(res) gsRender(res,kw);
+    },160);
+  });
+  gsInp.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){ e.stopPropagation(); closeGsSheet(); }
+    else if(e.key==="Enter"){ e.preventDefault(); if(gsActive>=0&&gsRows[gsActive]) gsRows[gsActive].click(); else if(gsRows.length) gsRows[0].click(); }
+    else if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();
+      if(!gsRows.length) return;
+      gsRows.forEach(function(r){ r.classList.remove("active"); });
+      gsActive=(gsActive+(e.key==="ArrowDown"?1:-1)+gsRows.length)%gsRows.length;
+      var r=gsRows[gsActive]; r.classList.add("active");
+      try{ if(r.scrollIntoView) r.scrollIntoView({behavior:"smooth",block:"nearest"}); }catch(err){}
+    }
+  });
+  // 快捷键：Ctrl+K / Cmd+K / "/" 唤出
+  document.addEventListener("keydown",function(e){
+    var inField=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.nodeName)||"");
+    if((e.ctrlKey||e.metaKey)&&(e.key==="k"||e.key==="K")){ e.preventDefault(); openGsSheet(); }
+    else if(e.key==="/"&&!inField&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); openGsSheet(); }
+  });
+})();
 // initial
 fillHero();
 setSection("ths");
